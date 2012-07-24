@@ -1,0 +1,52 @@
+This is the CS456 Assignment 2 submission for Andrew Klamut (ajklamut).
+*****************************************************************************************************
+
+My Router program implements all the assignment specifications and is written in C++. The submission
+should have the following files:
+
+-README
+-Makefile
+-driver.cc
+-common.h
+-common.cc
+-ospfnode.h
+-ospfnode.cc
+
+To run my program, build the "router" executable using the Makefile. For instance:
+
+linux028:~/cs456/a2> make
+g++    -c -o ospfnode.o ospfnode.cc
+g++    -c -o common.o common.cc
+g++    -c -o driver.o driver.cc
+g++ ospfnode.cc common.cc driver.cc -o router
+linux028:~/cs456/a2> ./router 1 localhost 9999 10001
+
+
+This uses the g++ compiler and "make", both of which are installed on the CS undergrad environment.
+This program was tested on the undergrad environment before submission.
+
+The basic logic of my router class is as follows:
+1) Calling code calls the OSPFNode constructor
+1a) Constructor sets up the output files
+1b) Constructor initializes member attributes as specified in its arguments
+1c) Constructor calls establishConnection(), which creates a UDP socket, binds it to the local port specified, then connects it to the remote port
+1d) Constructor calls sendInitPacket(), which sends the INIT packet
+1e) Constructor calls getCircuitDatabase(), which blocks on receiving the circuit_DB and enters each pair of link_cost into a local std::map
+1f) For each entry in the local circuit database, Constructor calls addTopologyEntry(), which adds to/prints the link state DB
+1g) For each entry in the local circuit database, Constructor calls rebuildRIB(), which recalculates/prints the RIB
+1h) For each entry in the local circuit database, Constructor calls sendHelloPacket(), which sends HELLO to a particular neighbour
+1i) Constructor exits
+2) Calling code calls OSPFNode::service()
+2a) service() loops indefinitely on receiving a packet, and expecting it to either be a HELLO or an LSPDU
+2b) If it is a pkt_HELLO, the router adds this link to a list (vector) of "active" links, which we reference when forwarding received LSPDU packets.
+2c) If it is a pkt_HELLO, the router also responds to the same neighbour with LSPDU packets describing only it's own circuit database info
+2d) If it is a pkt_LSPDU, the router parses the members. If it is redudant information, skip to the next loop iteration (continue)
+2e) If it is a pkt_LSPDU, and not redundant, then call addTopologyEntry() and rebuildRIB() as done before.
+2f) If it is a pkt_LSPDU, and not redundant, also call forwardLSPDUPacket(), which modifies the sender field to its own id, and sends via all active links.
+2g) Loops indefinitely until you CTRL+C
+
+An additional feature of my program is one that slightly improves portability. For marshalling/unmarshalling integers, I never assume they are 4 bytes in size, even though this is very common. I always reference sizeof(int) instead.
+
+Thanks and I hope you like my submission!
+
+Andrew
